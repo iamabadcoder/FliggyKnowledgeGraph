@@ -10,6 +10,18 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 
+# 写文件
+def write_to_file(file_name, dest_name, tour_name, tour_desc):
+	file_object = open(file_name, 'a+')
+	tour_record = {}
+	tour_record['DESTINATION'] = dest_name
+	tour_record['TOUR_NAME'] = tour_name
+	tour_record['TOUR_DESC'] = tour_desc
+	file_object.write("%s\n" % json.dumps(tour_record, ensure_ascii=False))
+	file_object.flush()
+	file_object.close()
+
+
 # 读取文件的指定行
 def read_target_line(filename, lineno):
 	return linecache.getline(filename, lineno)
@@ -22,29 +34,6 @@ def locate_target_line(file_path, target_line):
 		if target_line == line.strip():
 			return line_num
 	return -1
-
-
-def get_tour_name_line_nums(file_path):
-	tour_name_line_nums = []
-	target_line_num = locate_target_line(file_path, '# 行程推荐')
-	if target_line_num == -1:
-		return tour_name_line_nums
-	for i in range(target_line_num + 1, 500):
-		target_line = read_target_line(file_path, i)
-		if target_line is None:
-			print 'error when get_tour_name_line_nums, %s, %s' % (file_path, i)
-			continue
-		if target_line.startswith('# '):
-			break
-		elif target_line.startswith('## ') and ('行程综述' not in target_line) and ('行程踪述' not in target_line):
-			tour_name_line_nums.append(i)
-	return tour_name_line_nums
-
-
-# 获取目的地名称
-def get_destination_name(afile):
-	file_name = os.path.splitext(afile)[0]
-	return file_name.replace('.html', '').replace('旅游攻略', '')
 
 
 def get_day_str(line):
@@ -119,38 +108,50 @@ def get_tour_poi_and_desc(file_path, line_num, destination_name):
 			one_day = {}
 			curr_day = i_line[0:search_res[0]].replace('#', '').strip()
 			if curr_day == '':
-				curr_day = 'D1'
+				if '一日' in tour_name_line:
+					curr_day = 'D1'
+				else:
+					curr_day = 'ALL'
 			one_day['POI'], last_poi_line_num = get_one_day_poi(file_path, i, i_line[search_res[1]:])
 			one_day['DESC'] = get_one_day_desc(file_path, last_poi_line_num)
 			all_day[curr_day] = one_day
 		else:
 			print i_line
-	# 写如文件
-	file_object = open('recommended_tours_extraction.txt', 'a+')
-	file_object.write("%s\t%s\t%s\n" % (
-		destination_name, tour_name_line.replace('#', '').strip(), json.dumps(all_day, ensure_ascii=False)))
-	file_object.flush()
-	file_object.close()
+	if len(all_day) > 0:
+		write_to_file('ctrip_recommended_tours.txt', destination_name, tour_name_line.replace('#', '').strip(), all_day)
+
+
+def get_tour_name_line_nums(file_path, target_line_num):
+	tour_name_line_nums = []
+	for i in range(target_line_num + 1, 500):
+		target_line = read_target_line(file_path, i)
+		if target_line is None:
+			print 'error when get_tour_name_line_nums, %s, %s' % (file_path, i)
+			continue
+		if target_line.startswith('# '):
+			break
+		elif target_line.startswith('## ') and ('行程综述' not in target_line) and ('行程踪述' not in target_line):
+			print target_line.strip()
+			tour_name_line_nums.append(i)
+	return tour_name_line_nums
 
 
 # 解析行程推荐
-def extract_recommended_tours(dir_path):
-	file_list = os.listdir(dir_path)
-	file_num = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		destination_name = os.path.splitext(afile)[0].replace('.html', '').replace('旅游攻略', '')
-		print destination_name
-		file_num += 1
-		file_path = os.path.join(dir_path, afile)
-		tour_name_line_nums = get_tour_name_line_nums(file_path)
-		print tour_name_line_nums
-		for ln in tour_name_line_nums:  # ln 代表一条线路的开始
-			print get_tour_poi_and_desc(file_path, ln, destination_name)
+def extract_recommended_tours(file_name):
+	file_path = os.path.join(dir_path, file_name)
+	destination = os.path.splitext(file_name)[0].replace('.html', '').replace('旅游攻略', '')
+	target_line_num = locate_target_line(file_path, '# 行程推荐')
+	if target_line_num != -1:
+		tour_name_line_nums = get_tour_name_line_nums(file_path, target_line_num)
+	else:
+		return
+	for ln in tour_name_line_nums:  # ln 代表一条线路的开始
+		print get_tour_poi_and_desc(file_path, ln, destination)
 
 
 if __name__ == '__main__':
 	dir_path = '/Users/caolei/Downloads/ctrip/ctrip_md/todo'
 	special_sign = read_target_line(dir_path + '/万象旅游攻略.html.md', 180)[7:10]
-	extract_recommended_tours(dir_path)
+	file_list = os.listdir(dir_path)
+	for filtered_file in [afile for afile in file_list if 'html.md' in afile]:
+		extract_recommended_tours(filtered_file)
