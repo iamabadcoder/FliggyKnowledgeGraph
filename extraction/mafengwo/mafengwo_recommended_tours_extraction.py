@@ -12,6 +12,29 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 
+def keyword_unification(file_path):
+	a = open(file_path, 'r')
+	# replaced_str = a.read().replace('线路安排', '线路设计').replace('线路指导', '线路设计')\
+	# 	.replace('线路行程', '线路详情').replace('简易行程', '线路设计').replace('详细行程', '线路详情')\
+	# 	.replace('具体行程', '线路详情')
+	replaced_str = a.read().replace('线路指导', '线路设计').replace('路线详情', '线路详情')
+	b = open(file_path, 'w')
+	b.write(replaced_str)
+	b.close()
+
+
+# 写文件
+def write_to_file(file_name, dest_name, tour_name, tour_desc):
+	file_object = open(file_name, 'a+')
+	tour_record = {}
+	tour_record['DESTINATION'] = dest_name
+	tour_record['TOUR_NAME'] = tour_name
+	tour_record['TOUR_DESC'] = tour_desc
+	file_object.write("%s\n" % json.dumps(tour_record, ensure_ascii=False))
+	file_object.flush()
+	file_object.close()
+
+
 def extract_by_day(tour_desc, route_feature, route_design, route_detail):
 	all_day = {}
 	pattern = re.compile(r'D\d+')
@@ -85,14 +108,6 @@ def extract_by_day2(tour_desc, route_feature, route_detail):
 	return all_day
 
 
-# 写文件
-def write_to_file(file_name, dest_name, tour_name, tour_desc):
-	file_object = open(file_name, 'a+')
-	file_object.write("%s >>>> %s >>>> %s\n" % (dest_name, tour_name, tour_desc))
-	file_object.flush()
-	file_object.close()
-
-
 ''' 一行同时包含线路特色、线路设计和线路详情三个关键词
 ### 西昌经典三日游线路
 #### 线路特色：游览西昌最精华的景点，领略“月光城”的山水与城色。线路设计：D1：西昌——西昌卫星发射中心——西昌古城；D2：西昌——螺髻山；D3：泸山——邛海线路详情：D1：到达西昌后乘车前往素有“东方休斯敦”之称的——西昌卫星发射中心，可参观发射塔架、实体火箭、航天公园、奔月楼，了解神秘的中国航天高科技，能和发射架来一次合影一定是很骄傲的。下午回到西昌市区，乘公交到达西昌古城大通门，品尝地道西昌城门洞小吃，晚上游览西昌繁华夜市，登顶城楼赏“月光城”夜景。晚宿西昌市内。D2：上午乘车前往国家AAAA级风景名胜区——螺髻山。之后换乘景区观光车抵螺髻山索道站，乘亚洲落差最大的观光索道游览螺髻山美景，之后徒步进入螺髻山风景区，尽情享受原始森林天然氧吧，下山途中可车观螺髻山彝家山寨，这里有充满彝族特色的民居院落，彝族风情浓郁。晚上回到西昌市内住宿。D3：上午前往泸山风景区游览。泸山终年滴翠，山上有古柏、苍松、金桂，拥有多处道堂寺庙，佛道儒三教合一，世间罕见，还可参观中国唯一的彝族奴隶社会博物馆。之后乘车返回市区时，可顺便游览彝海结盟像，了解红军长征经过凉山的历史。下午可乘106巴士环湖一周，傍晚漫步邛海月色风情小镇、邛海公园，品尝特色醉虾和火盆烧烤，湖光山色，美酒佳肴，一醉方休。
@@ -102,73 +117,32 @@ def write_to_file(file_name, dest_name, tour_name, tour_desc):
 '''
 
 
-def extract_part_a(dir_path):
-	file_list = os.listdir(dir_path)
+def extract_part_a(dir_path, afile):
 	route_count = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		file_path = os.path.join(dir_path, afile)
-		line_count = len(open(file_path, 'rU').readlines())
-		for ith in range(1, line_count + 1):
-			ith_line = linecache.getline(file_path, ith)
-			if '线路特色' in ith_line and '线路设计' in ith_line and '线路详情' in ith_line:
-				tour_name = linecache.getline(file_path, ith - 1)
-				pound_sign = ith_line[0:15].count('#')
-				for jth in range(ith + 1, ith + 20):
-					jth_line = linecache.getline(file_path, jth)
-					if jth_line[0:15].count('#') == pound_sign:
-						ith_line = ith_line.strip() + jth_line.replace('#', '').strip()
-					else:
-						break
-
-				destination_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-				tour_name = tour_name.replace('#', '').strip()
-				tour_desc = ith_line.replace('#', '').strip()
-				route_count += 1
-
-				all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '线路详情')
-				write_to_file('recommended_tours_mafengwo.txt', destination_name, tour_name,
-							  json.dumps(all_day, ensure_ascii=False))
-
-	print route_count
-
-
-''' 一行同时包含线路特色、线路指导和线路详情三个关键词
-## 舟山 -宁波串联游
-### 线路特色：玩海滩、看沙雕，瞻佛国、尝海鲜，等待第一缕曙光，悠游舟山和宁波， 线路指导：朱家尖——大青山——东极岛——桃花岛——宁波线路详情：D1：上海-朱家尖（南沙沙雕）上海直飞舟山，机票500多，机场就在朱家尖，很方便。如果不坐飞机，从宁波和上海都有到沈家门的大巴，车次很多，到了沈家门打车到朱家尖很近了。住宿：朱家尖的住宿很多，南沙开发成熟，人多，东沙全是别墅群，人少，安静，离东沙沙滩近，离南沙步行也就十几分钟。下午：南沙沙雕，看沙雕玩沙子，如果时间允许建议一直看到晚上，晚上灯光打出来，会有不一样的感觉。可以租了帐篷，在南沙人相对是多的。D2：大青山—千沙—里沙，大、小乌石塘，夜晚玩东沙，各类娱乐，篝火，烧烤大青山景区三面临海，岗峦依海起势，峰峦绵亘十余里，灵岩奇石计有二百余处。因特殊的地理位置，山上常年云雾缠绕，“青山醉雾”为海山一大奇观。在大青山脚下就有上山的车子，免费的，在路上各景点会停，只是停车时间较短。大青山脚步下即是里沙，沙子细软，犹如踩在柔软的毛毯上。千沙在大青山售票处边上一条下路下去即是，沙子和里沙一样，而且是几乎没有游人。到达交通一般从南沙包面包车前往，行程15分钟。从大青山回来大约14:00左右，前往大、小乌石塘（选择其一游玩），小乌石塘不要门票，只是没有大乌石塘里的那些游乐设施。两条横卧着的海塘，全由乌黑发亮的鹅卵石自然倚坡斜垒而成，气势庞大，蔚为壮观。游人若躺在清凉光洁的砾石上望明月，聆潮音，遐思油然，恍入幻境，人们称此景为“乌塘潮音”。到达交通从朱家尖（大洞岙）汽车站有公交车去乌石塘，仅10分钟车程。如果等不到车，乘三轮摩的从大洞岙过去只要5元。晚上回到老板家，在住家吃海鲜，吃完海鲜可以到东沙玩沙。沙滩上有很多烧烤，还有露营区。D3-4：普陀山普陀山是中国佛教四大名山，是观世音菩萨教化众生的道场。第一天行程：心字石——磐陀石——二龟听法石——观音洞——普济禅寺——慧济禅寺——杨枝禅院——千步沙——百步沙西天景区：先到普济禅寺附近安排住宿，可住在寺院内，也可在附近找合适的旅馆。然后游西天景区，心字石、磐陀石、二龟听法石、观音洞。午前返回普济禅寺参观。慧济寺：下午在百步沙乘2号线去索道站乘缆车上慧济寺、登佛顶山。然后步行下山，途径海天佛国石。法雨禅寺、千步沙：下到法雨禅寺参观后，到千步沙或百步沙游泳。用罢晚餐，继续到百步沙看晚霞听涛声。若你爱热闹，“普陀山的南京路”——横直街就在普济寺的前面。不过别玩的太晚了，因为明天我们还要起个大早呢！第二天行程：短姑圣迹——洛迦山——不肯去观音院——潮音洞——紫竹林——南海观音立像——百步沙 一早到百步沙观海上日出。洛迦山：7:00到短姑道头乘船至洛迦山游览半天。紫竹林：午后去紫竹林景区，继续“朝圣观音”之旅。到达交通：从朱家尖和沈家门均有前往普陀山的船，且发船间隔频密。D5-D7：东极岛三日游，宿东福山岛。东极岛由庙子湖、青浜、东福山3个岛，各具个性。庙子湖—东极镇政府所在地，渔民画的发祥地。海上布达拉——青浜岛。东福山—“福如东海.寿比南山"中的"福如东海"就是这里；新世纪真正意义上的第一缕曙光。看日出，就应该到这里！到达交通：从沈家门的半升洞码头前往东极岛（庙子湖岛），通常一天一个班船，早上8:30发船，10:30到达。法定节假日会加开，详情可咨询舟山沈家门半升洞码头：0580-3013775），建议大家提前一天到沈家门，晚上留宿沈家门，然后第2天一大早去买船票，尤其是周末票会比较难买。在半升洞码头附近的港滨路有很多宾馆可以住宿。D8：桃花岛金庸先生笔下的“东邪”黄药师就住在桃花岛上。桃花岛拥有舟山群岛第一高峰——安期峰；舟山第一深港——桃花港；东南沿海第一大石——大佛岩；素有“海岛植物园”美称。射雕影视城巧妙结合了山、岩、洞、水、林等自然景观的，整体建筑具有宋代风格，艺术精湛，内地版《射雕英雄传》、《天龙八部》等多部影视剧在此拍摄取景。沈家门墩头客运码头乘船直达桃花岛，从码头到金沙乘中巴4元，半小时可达。游塔湾金沙景区。先参观白雀寺、定海神针。接着到舟山群岛第二大沙滩－千步金沙漫步。下午沿龙潭路至安期峰景区。16：00前返回码头，渡船返回沈家门，逛东河海水产品市场，夜宿沈家门。也可回东沙游览路线：射雕影视城—塔湾金沙—桃花峪景区（桃花寨、弹指峰（黄药师练成绝技之地）、东海神珠、神雕石、海龟巡岸、含羞观音）-白雀寺—安期峰。D9：沈家门-宁波（天一阁-城隍庙-天一广场）到沈家门普陀汽车站乘坐到宁波的大巴，第一站自然是宁波标志性景点天一阁，天一阁是中国现存最早的私家藏书楼，也是亚洲现有最古老的图书馆和世界最早的三大家族图书馆之一。之后去宁波小吃聚集地城隍庙觅食，路上可以看到天封塔，城隍庙过去即是天一广场，晚上的夜景很漂亮，可以在这里尽情shopping，不要错过天一广场附近的宁波百年老店“缸鸭狗”，宁波汤团一定要尝一尝。线路出自
-'''
-
-
-def extract_part_aa(dir_path):
-	file_list = os.listdir(dir_path)
 	route_count = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		file_path = os.path.join(dir_path, afile)
-		line_count = len(open(file_path, 'rU').readlines())
-		for ith in range(1, line_count + 1):
-			ith_line = linecache.getline(file_path, ith)
-			if '线路特色' in ith_line and '线路指导' in ith_line and '线路详情' in ith_line and (
-					not ith_line.strip().endswith('线路详情：')):
-				tour_name = linecache.getline(file_path, ith - 1)
-				pound_sign = ith_line[0:15].count('#')
-				for jth in range(ith + 1, ith + 20):
-					jth_line = linecache.getline(file_path, jth)
-					if jth_line[0:10].count('#') >= pound_sign:
-						ith_line = ith_line.strip() + jth_line.replace('#', '').strip()
-					else:
-						break
-				destination_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-				tour_name = tour_name.replace('#', '').strip()
-				tour_desc = ith_line.replace('#', '').strip()
+	file_path = os.path.join(dir_path, afile)
+	keyword_unification(file_path)
+	line_count = len(open(file_path, 'rU').readlines())
+	for ith in range(1, line_count + 1):
+		ith_line = linecache.getline(file_path, ith)
+		if '线路特色' in ith_line and '线路设计' in ith_line and '线路详情' in ith_line:
+			tour_name = linecache.getline(file_path, ith - 1)
+			pound_sign = ith_line[0:15].count('#')
+			for jth in range(ith + 1, ith + 20):
+				jth_line = linecache.getline(file_path, jth)
+				if jth_line[0:15].count('#') == pound_sign:
+					ith_line = ith_line.strip() + jth_line.replace('#', '').strip()
+				else:
+					break
+
+			destination_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
+			tour_name = tour_name.replace('#', '').strip()
+			tour_desc = ith_line.replace('#', '').strip()
+
+			all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '线路详情')
+			if len(all_day) > 0:
 				route_count += 1
-
-				all_day = extract_by_day(tour_desc, '线路特色', '线路指导', '线路详情')
-				write_to_file('recommended_tours_mafengwo.txt', destination_name, tour_name,
-							  json.dumps(all_day, ensure_ascii=False))
-
+				write_to_file('mafengwo_recommended_tours.txt', destination_name, tour_name, all_day)
 	print route_count
 
 
@@ -178,36 +152,31 @@ def extract_part_aa(dir_path):
 '''
 
 
-def extract_part_b(dir_path):
-	file_list = os.listdir(dir_path)
+def extract_part_b(dir_path, afile):
 	route_count = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		file_path = os.path.join(dir_path, afile)
-		# 统计文件行数
-		line_count = len(open(file_path, 'rU').readlines())
-		for ith in range(1, line_count + 1):
-			ith_line = linecache.getline(file_path, ith)
-			if '线路特色' in ith_line and '线路安排' in ith_line and '线路行程' in ith_line:
-				tour_name = linecache.getline(file_path, ith - 1)
-				pound_sign = ith_line[0:15].count('#')
-				for jth in range(ith + 1, ith + 20):
-					jth_line = linecache.getline(file_path, jth)
-					if jth_line[0:15].count('#') == pound_sign:
-						ith_line = ith_line.strip() + jth_line.replace('#', '').strip()
-					else:
-						break
+	file_path = os.path.join(dir_path, afile)
+	# 统计文件行数
+	line_count = len(open(file_path, 'rU').readlines())
+	for ith in range(1, line_count + 1):
+		ith_line = linecache.getline(file_path, ith)
+		if '线路特色' in ith_line and '线路安排' in ith_line and '线路行程' in ith_line:
+			tour_name = linecache.getline(file_path, ith - 1)
+			pound_sign = ith_line[0:15].count('#')
+			for jth in range(ith + 1, ith + 20):
+				jth_line = linecache.getline(file_path, jth)
+				if jth_line[0:15].count('#') == pound_sign:
+					ith_line = ith_line.strip() + jth_line.replace('#', '').strip()
+				else:
+					break
 
-				destination_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-				tour_name = tour_name.replace('#', '').strip()
-				tour_desc = ith_line.replace('#', '').strip()
-				route_count += 1
+			destination_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
+			tour_name = tour_name.replace('#', '').strip()
+			tour_desc = ith_line.replace('#', '').strip()
+			route_count += 1
 
-				all_day = extract_by_day(tour_desc, '线路特色', '线路安排', '线路行程')
-
-				write_to_file('recommended_tours_mafengwo.txt', destination_name, tour_name,
-							  json.dumps(all_day, ensure_ascii=False))
+			all_day = extract_by_day(tour_desc, '线路特色', '线路安排', '线路行程')
+			if len(all_day) > 0:
+				write_to_file('mafengwo_recommended_tours.txt', destination_name, tour_name, all_day)
 	print route_count
 
 
@@ -223,47 +192,42 @@ def extract_part_b(dir_path):
 '''
 
 
-def extract_part_c(dir_path):
-	file_list = os.listdir(dir_path)
+def extract_part_c(dir_path, afile):
 	route_count = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		file_path = os.path.join(dir_path, afile)
-		# 统计文件行数
-		line_count = len(open(file_path, 'rU').readlines())
-		for ith in range(1, line_count + 1):
-			ith_line = linecache.getline(file_path, ith)
-			ith_netx_line = linecache.getline(file_path, ith + 1)
-			if '线路特色' in ith_line and '线路设计' in ith_line and ('线路详情' not in ith_line) and '线路详情' in ith_netx_line:
-				tour_name = linecache.getline(file_path, ith - 1).strip()
-				ith_netx_line_no_sharp = ith_netx_line.replace('#', '').strip()
-				if len(ith_netx_line_no_sharp) >= 18:
-					tour_name = linecache.getline(file_path, ith - 1)
-					merge_line = ith_line.replace('#', '').strip() + ith_netx_line.replace('#', '').strip()
-					# print tour_name + merge_line
-					route_count += 1
-					# dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-					# write_to_file('mafengwo_tours.txt', dest_name, tour_name.replace('#', '').strip(), merge_line)
-				else:
-					merge_line = ith_line.replace('#', '').strip() + ith_netx_line_no_sharp.strip()
-					pound_sign = ith_netx_line.count('#')
-					for i in range(ith + 2, ith + 6):
-						i_line = linecache.getline(file_path, i)
-						if i_line.count('#') > pound_sign:
-							merge_line = merge_line + i_line.replace('#', '').strip()
-						else:
-							break
-					# print tour_name + merge_line
+	file_path = os.path.join(dir_path, afile)
+	# 统计文件行数
+	line_count = len(open(file_path, 'rU').readlines())
+	for ith in range(1, line_count + 1):
+		ith_line = linecache.getline(file_path, ith)
+		ith_netx_line = linecache.getline(file_path, ith + 1)
+		if '线路特色' in ith_line and '线路设计' in ith_line and ('线路详情' not in ith_line) and '线路详情' in ith_netx_line:
+			tour_name = linecache.getline(file_path, ith - 1).strip()
+			ith_netx_line_no_sharp = ith_netx_line.replace('#', '').strip()
+			if len(ith_netx_line_no_sharp) >= 18:
+				tour_name = linecache.getline(file_path, ith - 1)
+				merge_line = ith_line.replace('#', '').strip() + ith_netx_line.replace('#', '').strip()
+				# print tour_name + merge_line
 				route_count += 1
-				dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-				tour_name = tour_name.replace('#', '').strip()
-				tour_desc = merge_line.replace('#', '').strip()
+			# dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
+			# write_to_file('mafengwo_tours.txt', dest_name, tour_name.replace('#', '').strip(), merge_line)
+			else:
+				merge_line = ith_line.replace('#', '').strip() + ith_netx_line_no_sharp.strip()
+				pound_sign = ith_netx_line.count('#')
+				for i in range(ith + 2, ith + 6):
+					i_line = linecache.getline(file_path, i)
+					if i_line.count('#') > pound_sign:
+						merge_line = merge_line + i_line.replace('#', '').strip()
+					else:
+						break
+					# print tour_name + merge_line
+			route_count += 1
+			dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
+			tour_name = tour_name.replace('#', '').strip()
+			tour_desc = merge_line.replace('#', '').strip()
 
-				all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '线路详情')
+			all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '线路详情')
 
-				write_to_file('recommended_tours_mafengwo.txt', dest_name, tour_name,
-								  json.dumps(all_day, ensure_ascii=False))
+			write_to_file('mafengwo_recommended_tours.txt', dest_name, tour_name, all_day)
 	print route_count
 
 
@@ -284,41 +248,36 @@ def extract_part_c(dir_path):
 '''
 
 
-def extract_part_d(dir_path):
-	file_list = os.listdir(dir_path)
+def extract_part_d(dir_path, afile):
 	route_count = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		file_path = os.path.join(dir_path, afile)
-		# 统计文件行数
-		line_count = len(open(file_path, 'rU').readlines())
-		for ith in range(1, line_count + 1):
-			ith_line = linecache.getline(file_path, ith)
-			if '线路特色' in ith_line:
-				identify_line_a = linecache.getline(file_path, ith + 1).replace('#', '').strip().replace('：', '')
-				identify_line_b = linecache.getline(file_path, ith + 3).replace('#', '').strip().replace('：', '')
-				if identify_line_a and '线路设计' == identify_line_a and identify_line_b and (
-								'线路详情' == identify_line_b or '路线详情' == identify_line_b):
-					route_design = identify_line_a + linecache.getline(file_path, ith + 2).replace('#', '').strip()
-					route_detail = identify_line_b + linecache.getline(file_path, ith + 4).replace('#', '').strip()
+	file_path = os.path.join(dir_path, afile)
+	# 统计文件行数
+	keyword_unification(file_path)
+	line_count = len(open(file_path, 'rU').readlines())
+	for ith in range(1, line_count + 1):
+		ith_line = linecache.getline(file_path, ith)
+		if '线路特色' in ith_line:
+			identify_line_a = linecache.getline(file_path, ith + 1).replace('#', '').strip().replace('：', '')
+			identify_line_b = linecache.getline(file_path, ith + 3).replace('#', '').strip().replace('：', '')
+			if identify_line_a and '线路设计' == identify_line_a and identify_line_b and '线路详情' == identify_line_b:
+				route_design = identify_line_a + linecache.getline(file_path, ith + 2).replace('#', '').strip()
+				route_detail = identify_line_b + linecache.getline(file_path, ith + 4).replace('#', '').strip()
 
-					pound_sign = linecache.getline(file_path, ith + 4)[0:15].count('#')
-					for jth in range(ith + 5, ith + 100):
-						jth_line = linecache.getline(file_path, jth)
-						if jth_line[0:15].count('#') == pound_sign:
-							route_detail += jth_line.replace('#', '').strip()
-						else:
-							break
+				pound_sign = linecache.getline(file_path, ith + 4)[0:15].count('#')
+				for jth in range(ith + 5, ith + 100):
+					jth_line = linecache.getline(file_path, jth)
+					if jth_line[0:15].count('#') == pound_sign:
+						route_detail += jth_line.replace('#', '').strip()
+					else:
+						break
 
-					tour_name = linecache.getline(file_path, ith - 1).replace('#', '').strip()
-					tour_desc = (ith_line.strip() + route_design + route_detail).replace('#', '').strip()
+				tour_name = linecache.getline(file_path, ith - 1).replace('#', '').strip()
+				tour_desc = (ith_line.strip() + route_design + route_detail).replace('#', '').strip()
 
-					route_count += 1
-					dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-					all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '[线路 | 路线]详情')
-					write_to_file('recommended_tours_mafengwo.txt', dest_name, tour_name,
-								  json.dumps(all_day, ensure_ascii=False))
+				route_count += 1
+				dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
+				all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '线路详情')
+				write_to_file('mafengwo_recommended_tours.txt', dest_name, tour_name, all_day)
 	print route_count
 
 
@@ -341,33 +300,28 @@ def extract_part_d(dir_path):
 '''
 
 
-def extract_part_e(dir_path):
-	file_list = os.listdir(dir_path)
+def extract_part_e(dir_path, afile):
 	route_count = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		file_path = os.path.join(dir_path, afile)
-		# 统计文件行数
-		line_count = len(open(file_path, 'rU').readlines())
-		for ith in range(1, line_count + 1):
-			ith_line = linecache.getline(file_path, ith)
-			if '线路特色' == ith_line.replace('#', '').replace('：', '').replace(':', '').strip():
-				identify_line_a = linecache.getline(file_path, ith + 2).replace('#', '').strip().replace('：', '')
-				identify_line_b = linecache.getline(file_path, ith + 4).replace('#', '').strip().replace('：', '')
-				if identify_line_a and '线路设计' == identify_line_a and identify_line_b and '线路详情' == identify_line_b:
-					route_feature = ith_line.replace('#', '').strip() + linecache.getline(file_path, ith + 1).replace(
-						'#', '').strip()
-					route_design = identify_line_a + linecache.getline(file_path, ith + 3).replace('#', '').strip()
-					route_detail = identify_line_b + linecache.getline(file_path, ith + 5).replace('#', '').strip()
-					tour_name = linecache.getline(file_path, ith - 1).replace('#', '').strip()
-					tour_desc = route_feature + route_design + route_detail
-					route_count += 1
+	file_path = os.path.join(dir_path, afile)
+	# 统计文件行数
+	line_count = len(open(file_path, 'rU').readlines())
+	for ith in range(1, line_count + 1):
+		ith_line = linecache.getline(file_path, ith)
+		if '线路特色' == ith_line.replace('#', '').replace('：', '').replace(':', '').strip():
+			identify_line_a = linecache.getline(file_path, ith + 2).replace('#', '').strip().replace('：', '')
+			identify_line_b = linecache.getline(file_path, ith + 4).replace('#', '').strip().replace('：', '')
+			if identify_line_a and '线路设计' == identify_line_a and identify_line_b and '线路详情' == identify_line_b:
+				route_feature = ith_line.replace('#', '').strip() + linecache.getline(file_path, ith + 1).replace('#',
+																												  '').strip()
+				route_design = identify_line_a + linecache.getline(file_path, ith + 3).replace('#', '').strip()
+				route_detail = identify_line_b + linecache.getline(file_path, ith + 5).replace('#', '').strip()
+				tour_name = linecache.getline(file_path, ith - 1).replace('#', '').strip()
+				tour_desc = route_feature + route_design + route_detail
+				route_count += 1
 
-					dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-					all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '线路详情')
-					write_to_file('recommended_tours_mafengwo.txt', dest_name, tour_name,
-								  json.dumps(all_day, ensure_ascii=False))
+				dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
+				all_day = extract_by_day(tour_desc, '线路特色', '线路设计', '线路详情')
+				write_to_file('mafengwo_recommended_tours.txt', dest_name, tour_name, all_day)
 	print route_count
 
 
@@ -380,56 +334,52 @@ def extract_part_e(dir_path):
 '''
 
 
-def extract_part_f(dir_path):
-	file_list = os.listdir(dir_path)
+def extract_part_f(dir_path, afile):
 	route_count = 0
-	for afile in file_list:
-		if 'html.md' not in afile:
-			continue
-		file_path = os.path.join(dir_path, afile)
-		# 统计文件行数
-		line_count = len(open(file_path, 'rU').readlines())
-		for ith in range(1, line_count + 1):
-			ith_line = linecache.getline(file_path, ith)
-			if '线路特色' == ith_line.replace('#', '').replace('：', '').strip():
-				identify_line_a = linecache.getline(file_path, ith + 2).replace('#', '').strip().replace('：', '')
-				if identify_line_a and '线路详情' == identify_line_a:
-					route_feature = ith_line.replace('#', '').strip() + linecache.getline(file_path, ith + 1).replace(
-						'#', '').strip()
-					tour_name = linecache.getline(file_path, ith - 1).replace('#', '').strip()
-					if '备选路线' in tour_name:
-						continue
-					route_detail = identify_line_a
-					pound_sign = linecache.getline(file_path, ith + 2).count('#')
-					first_line = True
-					for i in range(ith + 3, ith + 6):
-						i_line = linecache.getline(file_path, i)
-						if i_line.count('#') > pound_sign:
-							first_line = False
+	file_path = os.path.join(dir_path, afile)
+	# 统计文件行数
+	line_count = len(open(file_path, 'rU').readlines())
+	for ith in range(1, line_count + 1):
+		ith_line = linecache.getline(file_path, ith)
+		if '线路特色' == ith_line.replace('#', '').replace('：', '').strip():
+			identify_line_a = linecache.getline(file_path, ith + 2).replace('#', '').strip().replace('：', '')
+			if identify_line_a and '线路详情' == identify_line_a:
+				route_feature = ith_line.replace('#', '').strip() + linecache.getline(file_path, ith + 1).replace('#',
+																												  '').strip()
+				tour_name = linecache.getline(file_path, ith - 1).replace('#', '').strip()
+				if '备选路线' in tour_name:
+					continue
+				route_detail = identify_line_a
+				pound_sign = linecache.getline(file_path, ith + 2).count('#')
+				first_line = True
+				for i in range(ith + 3, ith + 6):
+					i_line = linecache.getline(file_path, i)
+					if i_line.count('#') > pound_sign:
+						first_line = False
+						route_detail = route_detail + i_line.replace('#', '').strip()
+					else:
+						if first_line:
 							route_detail = route_detail + i_line.replace('#', '').strip()
-						else:
-							if first_line:
-								route_detail = route_detail + i_line.replace('#', '').strip()
-							break
-					tour_desc = route_feature + route_detail
-					route_count += 1
+						break
+				tour_desc = route_feature + route_detail
+				route_count += 1
 
-					if '线路设计' in route_feature:
-						continue
+				if '线路设计' in route_feature:
+					continue
 
-					dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
-					all_day = extract_by_day2(tour_desc, '线路特色', '线路详情')
-					write_to_file('recommended_tours_mafengwo.txt', dest_name, tour_name,
-								  json.dumps(all_day, ensure_ascii=False))
+				dest_name = os.path.splitext(afile)[0].replace('.html', '').replace(' ', '')
+				all_day = extract_by_day2(tour_desc, '线路特色', '线路详情')
+				write_to_file('mafengwo_recommended_tours.txt', dest_name, tour_name, all_day)
 	print route_count
 
 
 if __name__ == '__main__':
-	dir_path = '/Users/caolei/Downloads/mafengwo/mafengwo_md/todo'
-	extract_part_a(dir_path)
-	extract_part_aa(dir_path)
-	extract_part_b(dir_path)
-	extract_part_c(dir_path)
-	extract_part_d(dir_path)
-	extract_part_e(dir_path)
-	extract_part_f(dir_path)
+	dir_path = '/Users/caolei/Downloads/mafengwo_old/mafengwo_md/todo'
+	file_list = os.listdir(dir_path)
+	for filtered_file in [afile for afile in file_list if 'html.md' in afile]:
+		extract_part_a(dir_path, filtered_file)
+		extract_part_b(dir_path, filtered_file)
+		extract_part_c(dir_path, filtered_file)
+		extract_part_d(dir_path, filtered_file)
+		extract_part_e(dir_path, filtered_file)
+		extract_part_f(dir_path, filtered_file)
