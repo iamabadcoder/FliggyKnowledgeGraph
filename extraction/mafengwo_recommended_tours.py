@@ -12,6 +12,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 
+
 # 写文件
 def write_to_file(file_name, dest_name, tour_name, tour_desc):
 	file_object = open(file_name, 'a+')
