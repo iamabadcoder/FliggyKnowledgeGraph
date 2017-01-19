@@ -48,7 +48,7 @@ def extract_one_day_tours(file_path, ln, destination):
 	one_day['DESC'] = replace_sign(tour_desc)
 
 	all_day['第1天'] = one_day
-	write_to_file('qyer_recommended_tours.txt', destination, tour_name_line.replace('#', ''), all_day)
+	write_to_file('qyer_recommended_tours_1.txt', destination, tour_name_line.replace('#', ''), all_day)
 
 
 def extract_two_day_tours(file_path, ln, destination):
@@ -93,7 +93,7 @@ def extract_two_day_tours(file_path, ln, destination):
 			all_day['第' + str(i) + '天'] = curr_day
 
 	if len(all_day) > 0:
-		write_to_file('qyer_recommended_tours.txt', destination, tour_name_line.replace('#', ''), all_day)
+		write_to_file('qyer_recommended_tours_1.txt', destination, tour_name_line.replace('#', ''), all_day)
 
 
 def extract_three_day_tours(file_path, ln, destination):
@@ -138,7 +138,7 @@ def extract_three_day_tours(file_path, ln, destination):
 			all_day['第' + str(i) + '天'] = curr_day
 
 	if len(all_day) > 0:
-		write_to_file('qyer_recommended_tours.txt', destination, tour_name_line.replace('#', ''), all_day)
+		write_to_file('qyer_recommended_tours_1.txt', destination, tour_name_line.replace('#', ''), all_day)
 
 
 def extract_many_day_tours(file_path, ln, destination, which_day):
@@ -183,7 +183,7 @@ def extract_many_day_tours(file_path, ln, destination, which_day):
 			all_day['第' + str(i) + '天'] = curr_day
 
 	if len(all_day) > 0:
-		write_to_file('qyer_recommended_tours.txt', destination, tour_name_line.replace('#', ''), all_day)
+		write_to_file('qyer_recommended_tours_1.txt', destination, tour_name_line.replace('#', ''), all_day)
 
 
 def get_tour_name_line_nums(file_path, specified_line_num, pattern):
@@ -217,11 +217,11 @@ def extract_recommended_tours(file_name, specified_line_num):
 
 
 	# # 2日游线路
-	# 	pattern = re.compile(r'[二|2|两]日')
-	# 	tour_name_line_nums = get_tour_name_line_nums(file_path, specified_line_num, pattern)
+	# pattern = re.compile(r'[二|2|两]日')
+	# tour_name_line_nums = get_tour_name_line_nums(file_path, specified_line_num, pattern)
 	#
-	# 	for ln in tour_name_line_nums:
-	# 		extract_two_day_tours(file_path, ln, destination)
+	# for ln in tour_name_line_nums:
+	# 	extract_two_day_tours(file_path, ln, destination)
 
 	# 3日游线路
 	# pattern = re.compile(r'[三|3]日')
@@ -240,6 +240,12 @@ def extract_recommended_tours(file_name, specified_line_num):
 	# tour_name_line_nums = get_tour_name_line_nums(file_path, specified_line_num, pattern)
 	# for ln in tour_name_line_nums:
 	# 	extract_many_day_tours(file_path, ln, destination, 5)
+
+	# 7日游线路
+	# pattern = re.compile(r'[七|7]日')
+	# tour_name_line_nums = get_tour_name_line_nums(file_path, specified_line_num, pattern)
+	# for ln in tour_name_line_nums:
+	# 	extract_many_day_tours(file_path, ln, destination, 7)
 
 
 def filter_specified_files():
