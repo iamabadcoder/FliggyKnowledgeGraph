@@ -34,18 +34,18 @@ def replace_pound_sign(line):
 
 
 def extract_tour(file_path, ln, destination):
-	tour_name = clean_line(linecache.getline(file_path, ln))
+	tour_name = replace_sign(linecache.getline(file_path, ln)).replace('推荐路线｜', '').strip()
+	pound_sign_count = tour_name.count('#')
 
-	# 获取线路描述
 	tour_desc = '####'
-	for i in range(ln + 1, 1500):
+	for i in range(ln + 1, 2000):
 		i_line = linecache.getline(file_path, i)
-		if i_line.startswith('## ') or i_line.startswith('# '):
+		if i_line.count('#') == pound_sign_count:
 			break
 		elif '图：' in i_line:
 			continue
 		else:
-			tour_desc = tour_desc + i_line.replace('#', '').replace('：', '').strip()
+			tour_desc = tour_desc + replace_pound_sign(i_line)
 
 	# 解析线路描述
 	all_day = {}
@@ -84,31 +84,30 @@ def extract_tour(file_path, ln, destination):
 			all_day['第' + str(i) + '天'] = curr_day
 
 	if len(all_day) > 0:
-		write_to_file('qyer_recommended_tours_3.txt', destination, tour_name, all_day)
+		write_to_file('qyer_recommended_tours_4.txt', destination, clean_line(tour_name), all_day)
 
 
-def get_tour_name_line_nums(file_path, specified_line_num):
+def get_tour_name_line_nums(file_path):
 	tour_name_line_nums = []
-	for ith in range(specified_line_num + 1, 1500):
+	line_count = len(open(file_path, 'rU').readlines())
+	for ith in range(1, line_count + 1):
 		ith_line = linecache.getline(file_path, ith)
 		if ith_line is None:
-			print '出错了,出错了,出错了,出错了,出错了,出错了,出错了,出错了,出错了,出错了,出错了, %s, %s' % (file_path, ith)
+			print '出错了，出错了，出错了，出错了，出错了, %s, %s' % (file_path, ith)
 			continue
-		if ith_line.startswith('# '):
-			break
-		elif ith_line.startswith('## ___op___'):
-			if len(ith_line) < 100 and '开放时间' not in ith_line:
-				print clean_line(ith_line)
+		if ith_line.startswith('# ___op___推荐路线｜'):
+			if len(ith_line) < 120:
+				print clean_line(ith_line).replace('推荐路线｜', '').strip()
 				tour_name_line_nums.append(ith)
 	return tour_name_line_nums
 
 
-def extract_recommended_tours(file_name, specified_line_num):
+def extract_recommended_tours(file_name):
 	destination = os.path.splitext(file_name)[0].replace('.html', '').replace('穷游锦囊 - ', '')
 
 	file_path = os.path.join(todo_dir_path, file_name)
 
-	tour_name_line_nums = get_tour_name_line_nums(file_path, specified_line_num)
+	tour_name_line_nums = get_tour_name_line_nums(file_path)
 
 	for ln in tour_name_line_nums:
 		extract_tour(file_path, ln, destination)
@@ -120,9 +119,9 @@ def filter_specified_files():
 		file_path = os.path.join(todo_dir_path, filtered_file)
 		for ith in range(1, len(open(file_path, 'rU').readlines()) + 1):
 			ith_line = linecache.getline(file_path, ith)
-			if '# ___op___推荐路线___ed___' == ith_line.strip():
+			if '# ___op___推荐路线｜' in ith_line.strip():
+				# os.system("cp -f '" + file_path + "' " + part2_dir_path)  # 使用val接收返回值
 				specified_files[filtered_file] = ith
-				# os.system("cp -f '" + file_path + "' " + part1_dir_path)
 				break
 	return specified_files
 
@@ -131,8 +130,8 @@ if __name__ == '__main__':
 	prefix_sign = '___op___'
 	postfix_sign = '___ed___'
 	todo_dir_path = '/Users/caolei/Downloads/qyer/qyer_md/todo'
-	part1_dir_path = '/Users/caolei/Downloads/qyer/qyer_md/part1'
+	part2_dir_path = '/Users/caolei/Downloads/qyer/qyer_md/part2'
 	file_list = os.listdir(todo_dir_path)
 	filtered_files = filter_specified_files()
 	for afile in sorted(filtered_files.keys()):
-		extract_recommended_tours(afile, filtered_files[afile])
+		extract_recommended_tours(afile)
